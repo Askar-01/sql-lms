@@ -1,13 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { createBrowserClient } from "@/utils/supabase/client";
 
 export default function AuthPage() {
-  const router = useRouter();
-
   const [mode, setMode] = useState<"signin" | "signup">("signup");
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<"student" | "teacher">("student");
@@ -46,29 +43,31 @@ export default function AuthPage() {
 
       if (data.session) {
         setMessage("Ro‘yxatdan o‘tish muvaffaqiyatli tugadi.");
-        router.push("/dashboard");
+        window.location.href = "/dashboard";
+        return;
       } else {
         setMessage(
           "Ro‘yxatdan o‘tish muvaffaqiyatli. Email tasdiqlash yoqilgan bo‘lsa, pochtangizni tekshiring."
         );
-      }
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        setErrorText(error.message);
         setLoading(false);
         return;
       }
-
-      setMessage("Tizimga kirildi.");
-      router.push("/dashboard");
     }
 
-    setLoading(false);
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setErrorText(error.message);
+      setLoading(false);
+      return;
+    }
+
+    console.log("SIGN IN DATA:", data);
+    setMessage("Tizimga kirildi.");
+    window.location.href = "/profile";
   };
 
   return (
@@ -83,6 +82,7 @@ export default function AuthPage() {
         <div className="bg-white rounded-2xl shadow-md p-8">
           <div className="flex gap-3 mb-6">
             <button
+              type="button"
               onClick={() => setMode("signup")}
               className={`px-4 py-2 rounded-xl font-medium ${
                 mode === "signup"
@@ -94,6 +94,7 @@ export default function AuthPage() {
             </button>
 
             <button
+              type="button"
               onClick={() => setMode("signin")}
               className={`px-4 py-2 rounded-xl font-medium ${
                 mode === "signin"
@@ -110,7 +111,7 @@ export default function AuthPage() {
           </h1>
 
           <p className="text-slate-600 mb-6">
-            SQL Mini-LMS uchun аккаунт yarating yoki tizimga kiring.
+            SQL Mini-LMS uchun akkaunt yarating yoki tizimga kiring.
           </p>
 
           {message && (

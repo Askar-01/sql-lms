@@ -7,6 +7,7 @@ import { createBrowserClient } from "@/utils/supabase/client";
 
 type ProfileItem = {
   id: string;
+  email: string | null;
   full_name: string | null;
   role: "student" | "teacher" | "admin";
   class_name: string | null;
@@ -25,27 +26,28 @@ export default function ProfilePage() {
       const supabase = createBrowserClient();
 
       const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+        data: { session },
+      } = await supabase.auth.getSession();
 
-      if (userError || !user) {
+      const user = session?.user;
+
+      if (!user) {
         setLoading(false);
         return;
       }
 
       setEmail(user.email || "");
 
-      const { data: profileData, error: profileError } = await supabase
+      const { data: profileData, error } = await supabase
         .from("profiles")
-        .select("id, full_name, role, class_name, created_at")
+        .select("id, email, full_name, role, class_name, created_at")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
 
-      if (profileError) {
-        console.error(profileError.message);
-      } else {
-        setProfile(profileData);
+      if (error) {
+        console.error(error.message);
+      } else if (profileData) {
+        setProfile(profileData as ProfileItem);
       }
 
       setLoading(false);
@@ -57,7 +59,7 @@ export default function ProfilePage() {
   const handleLogout = async () => {
     const supabase = createBrowserClient();
     await supabase.auth.signOut();
-    router.push("/auth");
+    window.location.href = "/auth";
   };
 
   const getDashboardLink = () => {
