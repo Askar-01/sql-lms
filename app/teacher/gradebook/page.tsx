@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createBrowserClient } from "@/utils/supabase/client";
+import * as XLSX from "xlsx";
 
 type BsbSubmission = {
   id: number;
@@ -243,6 +244,48 @@ export default function TeacherGradebookPage() {
     URL.revokeObjectURL(url);
   };
 
+  const exportXlsx = () => {
+    const data = filteredRows.map((row, index) => ({
+      "T/r": index + 1,
+      "O‘quvchi": row.student_name,
+      "Sinf": row.student_class || "",
+      "BSB soni": row.bsb_total,
+      "BSB tekshirilgan": row.bsb_reviewed,
+      "BSB o‘rtacha": row.bsb_average ?? "",
+      "CHSB soni": row.chsb_total,
+      "Eng yaxshi CHSB (%)":
+        row.chsb_best_percentage !== null ? row.chsb_best_percentage : "",
+      "CHSB o‘rtacha (%)":
+        row.chsb_average_percentage !== null ? row.chsb_average_percentage : "",
+      Late: row.late_count,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+
+    worksheet["!cols"] = [
+      { wch: 6 },
+      { wch: 24 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 18 },
+      { wch: 14 },
+      { wch: 12 },
+      { wch: 18 },
+      { wch: 18 },
+      { wch: 10 },
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Gradebook");
+
+    const now = new Date();
+    const filename = `gradebook_${now.getFullYear()}-${String(
+      now.getMonth() + 1
+    ).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}.xlsx`;
+
+    XLSX.writeFile(workbook, filename);
+  };
+
   return (
     <main className="min-h-screen bg-slate-100 p-8">
       <div className="max-w-7xl mx-auto">
@@ -264,12 +307,21 @@ export default function TeacherGradebookPage() {
             Bu yerda BSB va CHSB natijalari o‘quvchi kesimida umumlashtiriladi.
           </p>
 
-          <button
-            onClick={exportCsv}
-            className="rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white"
-          >
-            CSV ga eksport
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={exportCsv}
+              className="rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white"
+            >
+              CSV ga eksport
+            </button>
+
+            <button
+              onClick={exportXlsx}
+              className="rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white"
+            >
+              Excel ga eksport
+            </button>
+          </div>
         </div>
 
         {loading ? (
